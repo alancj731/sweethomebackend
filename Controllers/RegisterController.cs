@@ -6,7 +6,7 @@ namespace sweetbackend.Controllers
 {
     public class Credential
     {
-        public string? User { get; set; }
+        public string? UserName { get; set; }
         public string? Password { get; set; }
         public string? Email { get; set; }
         public string? Role { get; set; }
@@ -26,7 +26,7 @@ namespace sweetbackend.Controllers
         [HttpPost]
         public async Task<ActionResult> RegisterUser([FromBody] Credential credential)
         {
-            if (credential.User == null || credential.Password == null || credential.Email == null)
+            if (string.IsNullOrEmpty(credential.UserName) || string.IsNullOrEmpty(credential.Password) || string.IsNullOrEmpty(credential.Email))
             {
                 return BadRequest("Username, password and email are required.");
             }
@@ -35,7 +35,7 @@ namespace sweetbackend.Controllers
 
             var user = new User
             {
-                UserName = credential.User,
+                UserName = credential.UserName,
                 PasswordHash = hashedPassword,
                 Email = credential.Email,  
                 Role = credential.Role?? "user", // Default role

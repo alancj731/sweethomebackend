@@ -1,32 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace sweetbackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class LoginController(AppDbContext context) : ControllerBase
+    public class LoginController(AppDbContext context, ITokenService tokenService) : ControllerBase
     {
         private readonly AppDbContext _context = context;
+        private readonly ITokenService _tokenService = tokenService;
 
         [HttpGet]
         public async Task<ActionResult> UserLogin([FromQuery] Credential credential)
-        {
-            if (string.IsNullOrEmpty(credential.Password) || (string.IsNullOrEmpty(credential.Email) && string.IsNullOrEmpty(credential.User)))
+        {   
+            Console.WriteLine(credential.UserName);
+            Console.WriteLine(credential.Password);
+            
+            if (string.IsNullOrEmpty(credential.Password) || string.IsNullOrEmpty(credential.UserName))
             {
-                return BadRequest("Username/email and password are required.");
+                return BadRequest("Username and Password are required.");
             }
 
-            User? user = null;
-            if (!string.IsNullOrEmpty(credential.Email))
-            {
-                user = await _context.Users.FirstOrDefaultAsync(u => u.Email == credential.Email);
-            }
-
-            if ( user == null && !string.IsNullOrEmpty(credential.User))
-            {
-                user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == credential.User);
-            }
+            User? user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == credential.UserName);
 
             if (user == null)
             {
@@ -38,11 +34,27 @@ namespace sweetbackend.Controllers
             {
                 return Unauthorized("Invalid password.");
             }
-            
-            return Ok("User login successfully.");
 
+            // if (!user.Verified)
+            // {
+            //     return Unauthorized("User not verified.");
+            // }
+
+            // if (!user.Approved)
+            // {
+            //     return Unauthorized("User not approved.");
+            // }
+            try
+            {
+                var token = this._tokenService.GenerateJwtToken(user.UserName);
+
+                return Ok(new { token });
+            }
+            catch (Exception e)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
+            }
         }
-
 
     }
 }

@@ -4,13 +4,26 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var Configuration = builder.Configuration;
 
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          policy.WithOrigins("http://localhost:8848")
+                            .AllowAnyHeader() // Allow any header
+                            .AllowAnyMethod() // Allow any HTTP method (GET, POST, etc.)
+                            .AllowCredentials(); // Allow credentials if needed (for cookies or auth tokens)
+                      });
+});
+
 builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddControllers();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -26,6 +39,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     ValidAudience = Configuration["JwtSettings:Audience"],
                 };
             });
+
+builder.Services.AddScoped<ITokenService, TokenService>();
+
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
@@ -38,5 +54,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.UseCors(MyAllowSpecificOrigins);
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();
