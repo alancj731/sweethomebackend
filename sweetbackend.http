@@ -1,0 +1,6 @@
+@sweetbackend_HostAddress = http://localhost:3000
+
+GET {{sweetbackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
