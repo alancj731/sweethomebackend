@@ -9,7 +9,7 @@ public class User
     public required string Email { get; set; }
 
     // unique
-    public required string UserName { get; set; }
+    public string? UserName { get; set; }
     public required string PasswordHash { get; set; }
     public required string Role { get; set; }
     public bool Verified { get; set; }

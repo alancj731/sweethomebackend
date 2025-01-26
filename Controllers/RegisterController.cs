@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace sweetbackend.Controllers
@@ -15,7 +16,7 @@ namespace sweetbackend.Controllers
 
 namespace sweetbackend.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/signup")]
     [ApiController]
     public class RegisterController(AppDbContext context) : ControllerBase
     {
@@ -26,32 +27,49 @@ namespace sweetbackend.Controllers
         [HttpPost]
         public async Task<ActionResult> RegisterUser([FromBody] Credential credential)
         {
-            if (string.IsNullOrEmpty(credential.UserName) || string.IsNullOrEmpty(credential.Password) || string.IsNullOrEmpty(credential.Email))
+            if (string.IsNullOrEmpty(credential.Email) || string.IsNullOrEmpty(credential.Password))
             {
-                return BadRequest("Username, password and email are required.");
+                return BadRequest("Email and password are required.");
             }
 
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(credential.Password);
-
-            var user = new User
+            try
             {
-                UserName = credential.UserName,
-                PasswordHash = hashedPassword,
-                Email = credential.Email,  
-                Role = credential.Role?? "user", // Default role
-                Verified = false,
-                Approved = false
-            };
 
-            _context.Users.Add(user);
-            var response = await _context.SaveChangesAsync();
+                // check if user already exists
+                User? existUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == credential.Email);
 
-            if (response == 0)
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to register user.");
+                if (existUser != null)
+                {
+                    return Conflict("User already exists.");
+                }
+
+                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(credential.Password);
+
+                var user = new User
+                {
+                    PasswordHash = hashedPassword,
+                    Email = credential.Email,
+                    Role = credential.Role ?? "user", // Default role
+                    Verified = false,
+                    Approved = false
+                };
+
+                _context.Users.Add(user);
+                var response = await _context.SaveChangesAsync();
+
+                if (response == 0)
+                {
+                    return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to register user.");
+                }
+
+                return Ok("User registered successfully.");
+
             }
 
-            return Ok("User registered successfully.");
+            catch (Exception e)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
+            }
 
         }
 
