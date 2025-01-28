@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -9,13 +10,17 @@ var Configuration = builder.Configuration;
 
 
 builder.Services.AddEndpointsApiExplorer();
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Listen(IPAddress.Any, 3000); // Listen on all network interfaces (0.0.0.0) on port 5000
+});
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy =>
                       {
-                          policy.WithOrigins("http://localhost:4200")
+                          policy.WithOrigins("http://50.93.163.158")
                             .AllowAnyHeader() // Allow any header
                             .AllowAnyMethod() // Allow any HTTP method (GET, POST, etc.)
                             .AllowCredentials(); // Allow credentials if needed (for cookies or auth tokens)
@@ -53,9 +58,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapControllers();
+// app.UseMiddleware<CustomCorsMiddleware>();
 app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
