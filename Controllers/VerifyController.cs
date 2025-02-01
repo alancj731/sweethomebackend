@@ -12,8 +12,9 @@ namespace sweetbackend.Controllers
         public IActionResult VerifyToken()
         {
             // If the request reaches here, the token is valid
-            Console.WriteLine("Token is verified");
-            return Ok(new { message = "Token is valid" });
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
+            Console.WriteLine($"Token is verified. Email: {email}");
+            return Ok(new { message = "Token is valid", email });
         }
     }
 }

@@ -5,19 +5,19 @@ using System.Text;
 
 public interface ITokenService
 {
-    string GenerateJwtToken(string username);
+    string GenerateJwtToken(string email);
 }
 
 public class TokenService(IConfiguration configuration) : ITokenService
 {
     private readonly IConfiguration _configuration = configuration;
 
-    public string GenerateJwtToken(string username)
+    public string GenerateJwtToken(string email)
     {
 
-        if (string.IsNullOrEmpty(username))
+        if (string.IsNullOrEmpty(email))
         {
-            throw new ArgumentException("Username is required for generating a token!", nameof(username));
+            throw new ArgumentException("Username is required for generating a token!", nameof(email));
         }
 
         var secretKey = this._configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("SecretKey is not configured");
@@ -32,7 +32,7 @@ public class TokenService(IConfiguration configuration) : ITokenService
         // Create a list of claims based on the user data
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Name, username),
+            new(ClaimTypes.Email, email),
             // Add any other claims you need, such as roles, permissions, etc.
         };
 

@@ -39,14 +39,17 @@ namespace sweetbackend.Controllers
                 }
 
                 // if (!user.Verified)
-                // {
+                // {    
+                //     Console.WriteLine("User not verified.");
                 //     return Unauthorized("User not verified.");
                 // }
 
-                // if (!user.Approved)
-                // {
-                //     return Unauthorized("User not approved.");
-                // }
+                if (!user.Approved)
+                {
+                    Console.WriteLine("User not approved.");
+                    return Unauthorized("User not approved.");
+                }
+
                 try
                 {
                     var token = this._tokenService.GenerateJwtToken(user.Email);
