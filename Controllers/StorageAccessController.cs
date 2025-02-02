@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using sweetbackend.Services.StorageAccess;
 
 
 
@@ -32,43 +33,11 @@ namespace sweetbackend.Controllers
 
     [Route("api/storage")]
     [ApiController]
-    public class StorageAccess(AppDbContext context): ControllerBase
+    public class StorageAccessController(AppDbContext context, StorageAccessService storageAccessService) : ControllerBase
     {
 
-        private AppDbContext _context = context;
-
-        public static Folder d = new Folder
-        {
-            id = "root",
-            name = "My Drive",
-            children = new List<object>
-            {
-                new Folder
-                {
-                    id = "folder1",
-                    name = "Documents",
-                    children = new List<object>
-                    {
-                        new File { id = "file1", name = "Resume.pdf", },
-                        new File { id = "file2", name = "Report.docx", }
-                    }
-                },
-                new Folder
-                {
-                    id = "folder2",
-                    name = "Images",
-                    children = new List<object>
-                    {
-                        new File { id = "file3", name = "Vacation.jpg" }
-                    }
-                },
-                new File
-                {
-                    id = "file1",
-                    name = "Videoss",
-                }
-            }
-        };
+        private readonly AppDbContext _context = context;
+        private readonly IStorageAccessService _storageAccessService = storageAccessService;
 
         [HttpPost]
         [Authorize]
@@ -86,7 +55,8 @@ namespace sweetbackend.Controllers
                     return NotFound("User not found.");
                 }
             }
-            else{
+            else
+            {
                 name = Path.GetFileName(path);
             }
 
@@ -103,7 +73,7 @@ namespace sweetbackend.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
             if (user != null)
-            {   
+            {
                 return user.StorageFolder;
             }
 
