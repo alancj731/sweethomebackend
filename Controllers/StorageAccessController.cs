@@ -2,27 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using sweetbackend.Services.StorageAccess;
 
 
 
 
 namespace sweetbackend.Controllers
 {
-    public class File
-    {
-        public string id { get; set; }
-        public string name { get; set; }
-        public string type { get; } = "file";
-    };
-
-    public class Folder
-    {
-        public string id { get; set; }
-        public string name { get; set; }
-        public string type { get; } = "folder";
-        public List<object> children { get; set; } = [];  // List of Folder or File
-    };
+    
 
 
     public class FolderPath
@@ -33,7 +19,7 @@ namespace sweetbackend.Controllers
 
     [Route("api/storage")]
     [ApiController]
-    public class StorageAccessController(AppDbContext context, StorageAccessService storageAccessService) : ControllerBase
+    public class StorageAccessController(AppDbContext context, IStorageAccessService storageAccessService) : ControllerBase
     {
 
         private readonly AppDbContext _context = context;
@@ -43,24 +29,11 @@ namespace sweetbackend.Controllers
         [Authorize]
         public async Task<IActionResult> GetStorage([FromBody] FolderPath folderPath)
         {
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value; 
             var path = folderPath.path;
-            var name = "My Drive";
 
-            if (path == "")
-            {
-                var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
-                path = await this.GetRootFolderPath(email);
-                if (path == null)
-                {
-                    return NotFound("User not found.");
-                }
-            }
-            else
-            {
-                name = Path.GetFileName(path);
-            }
+            var folderContent = await this._storageAccessService.GetStorage(email, path);
 
-            var folderContent = this.GetFolder(path, name);
             var jsonContent = JsonSerializer.Serialize(folderContent);
             // var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
@@ -80,10 +53,10 @@ namespace sweetbackend.Controllers
             return null;
         }
 
-        private Folder GetFolder(string path, string pathName)
+        private StorageFolder GetFolder(string path, string pathName)
         {
             // Implement the logic to get the root folder based on the email
-            var folder = new Folder
+            var folder = new StorageFolder
             {
                 id = path,
                 name = pathName,
@@ -106,7 +79,7 @@ namespace sweetbackend.Controllers
 
                 foreach (var directory in directories)
                 {
-                    var folder = new Folder
+                    var folder = new StorageFolder
                     {
                         id = directory,
                         name = Path.GetFileName(directory),
@@ -120,7 +93,7 @@ namespace sweetbackend.Controllers
                 foreach (var file in files)
                 {
                     var fileInfo = new FileInfo(file);
-                    var fileObject = new File
+                    var fileObject = new StorageFile
                     {
                         id = file,
                         name = fileInfo.Name,
