@@ -42,18 +42,18 @@ namespace sweetbackend.Controllers
 
         [HttpGet("download")]
         [Authorize]
-        public async Task<IActionResult> Download([FromQuery] TargetPath filePath)
+        public IActionResult Download([FromQuery] TargetPath filePath)
         {
             var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
             var path = filePath.path;
             if (path == null)
             {
-                return BadRequest("Path is required.");
+            return BadRequest("Path is required.");
             }
 
             if (!System.IO.File.Exists(path))
             {
-                return NotFound("File not found.");
+            return NotFound("File not found.");
             }
 
             var fileBytes = System.IO.File.ReadAllBytes(path);
