@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using System;
-using System.IO;
-using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 
 
 
@@ -34,8 +32,10 @@ namespace sweetbackend.Controllers
 
     [Route("api/storage")]
     [ApiController]
-    public class StorageAccess : ControllerBase
+    public class StorageAccess(AppDbContext context): ControllerBase
     {
+
+        private AppDbContext _context = context;
 
         public static Folder d = new Folder
         {
@@ -72,17 +72,19 @@ namespace sweetbackend.Controllers
 
         [HttpPost]
         [Authorize]
-        public IActionResult GetStorage([FromBody] FolderPath folderPath)
+        public async Task<IActionResult> GetStorage([FromBody] FolderPath folderPath)
         {
             var path = folderPath.path;
             var name = "My Drive";
-            Console.WriteLine($"GetStorage path: {path}");
 
             if (path == "")
             {
                 var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
-                Console.WriteLine($"GetStorage email: {email}");
-                path = this.GetRootFolderPath(email);
+                path = await this.GetRootFolderPath(email);
+                if (path == null)
+                {
+                    return NotFound("User not found.");
+                }
             }
             else{
                 name = Path.GetFileName(path);
@@ -91,15 +93,21 @@ namespace sweetbackend.Controllers
             var folderContent = this.GetFolder(path, name);
             var jsonContent = JsonSerializer.Serialize(folderContent);
             // var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-            Console.WriteLine($"{jsonContent}");
 
             return Ok(jsonContent);
         }
 
-        private string GetRootFolderPath(string email)
+        private async Task<string?> GetRootFolderPath(string email)
         {
             // Implement the logic to get the root folder based on the email
-            return "/home/jian/Documents/Work/github/dotnet/sweetbackend";
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user != null)
+            {   
+                return user.StorageFolder;
+            }
+
+            return null;
         }
 
         private Folder GetFolder(string path, string pathName)
@@ -116,7 +124,6 @@ namespace sweetbackend.Controllers
 
         public List<object> GetChildren(string folderPath)
         {
-            Console.WriteLine($"GetChildren folderPath: {folderPath}");
             var children = new List<object>();
 
             List<string> directories = new List<string>();
@@ -126,7 +133,6 @@ namespace sweetbackend.Controllers
             {
                 // Get subdirectories in the given folder
                 directories.AddRange(Directory.GetDirectories(folderPath));
-                Console.WriteLine($"GetChildren directories: {directories}");
 
                 foreach (var directory in directories)
                 {
@@ -140,7 +146,6 @@ namespace sweetbackend.Controllers
 
                 // Get files in the given folder
                 files.AddRange(Directory.GetFiles(folderPath));
-                Console.WriteLine($"GetChildren files: {files}");
 
                 foreach (var file in files)
                 {

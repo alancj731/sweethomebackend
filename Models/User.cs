@@ -14,4 +14,6 @@ public class User
     public required string Role { get; set; }
     public bool Verified { get; set; }
     public bool Approved { get; set; }
+
+    public string StorageFolder { get; set; } = "";
 }

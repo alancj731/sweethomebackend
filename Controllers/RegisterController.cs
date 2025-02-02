@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace sweetbackend.Controllers
 {
     public class Credential
@@ -44,12 +43,27 @@ namespace sweetbackend.Controllers
                 }
 
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(credential.Password);
+                var userStoragePath = Path.Join("./UserStorage/", credential.Email.Replace("@", "_").Replace(".", "_"));
+                Console.WriteLine(userStoragePath);
+
+                if (!Directory.Exists(userStoragePath))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(userStoragePath);
+                    }
+                    catch (Exception e)
+                    {
+                        return StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
+                    }
+                }
 
                 var user = new User
                 {
                     PasswordHash = hashedPassword,
                     Email = credential.Email,
                     Role = credential.Role ?? "user", // Default role
+                    StorageFolder = userStoragePath,
                     Verified = false,
                     Approved = false
                 };
