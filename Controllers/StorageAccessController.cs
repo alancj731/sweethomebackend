@@ -2,18 +2,19 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
 
 
 
 namespace sweetbackend.Controllers
 {
-    
 
 
-    public class FolderPath
+
+    public class TargetPath
     {
-        public string path { get; set; }
+        public string? path { get; set; }
     }
 
 
@@ -25,89 +26,42 @@ namespace sweetbackend.Controllers
         private readonly AppDbContext _context = context;
         private readonly IStorageAccessService _storageAccessService = storageAccessService;
 
-        [HttpPost]
+        [HttpGet("content")]
         [Authorize]
-        public async Task<IActionResult> GetStorage([FromBody] FolderPath folderPath)
+        public async Task<IActionResult> GetStorage([FromQuery] TargetPath? folderPath)
         {
-            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value; 
-            var path = folderPath.path;
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
+            var path = folderPath?.path ?? string.Empty;
 
             var folderContent = await this._storageAccessService.GetStorage(email, path);
 
             var jsonContent = JsonSerializer.Serialize(folderContent);
-            // var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             return Ok(jsonContent);
         }
 
-        private async Task<string?> GetRootFolderPath(string email)
+        [HttpGet("download")]
+        [Authorize]
+        public async Task<IActionResult> Download([FromQuery] TargetPath filePath)
         {
-            // Implement the logic to get the root folder based on the email
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-            if (user != null)
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
+            var path = filePath.path;
+            if (path == null)
             {
-                return user.StorageFolder;
+                return BadRequest("Path is required.");
             }
 
-            return null;
-        }
-
-        private StorageFolder GetFolder(string path, string pathName)
-        {
-            // Implement the logic to get the root folder based on the email
-            var folder = new StorageFolder
+            if (!System.IO.File.Exists(path))
             {
-                id = path,
-                name = pathName,
-            };
-            folder.children = this.GetChildren(folder.id);
-            return folder;
-        }
-
-        public List<object> GetChildren(string folderPath)
-        {
-            var children = new List<object>();
-
-            List<string> directories = new List<string>();
-            List<string> files = new List<string>();
-
-            try
-            {
-                // Get subdirectories in the given folder
-                directories.AddRange(Directory.GetDirectories(folderPath));
-
-                foreach (var directory in directories)
-                {
-                    var folder = new StorageFolder
-                    {
-                        id = directory,
-                        name = Path.GetFileName(directory),
-                    };
-                    children.Add(folder);
-                }
-
-                // Get files in the given folder
-                files.AddRange(Directory.GetFiles(folderPath));
-
-                foreach (var file in files)
-                {
-                    var fileInfo = new FileInfo(file);
-                    var fileObject = new StorageFile
-                    {
-                        id = file,
-                        name = fileInfo.Name,
-                    };
-                    children.Add(fileObject);
-                }
-                return children;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred: {ex.Message}");
-                return [];
+                return NotFound("File not found.");
             }
 
+            var fileBytes = System.IO.File.ReadAllBytes(path);
+            var fileName = Path.GetFileName(path);
+            var contentType = "application/octet-stream";
+
+            return File(fileBytes, contentType, fileName);
         }
+
     }
 }
