@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
+using System.Net;
 
 
 
@@ -42,18 +41,18 @@ namespace sweetbackend.Controllers
 
         [HttpGet("download")]
         [Authorize]
-        public IActionResult Download([FromQuery] TargetPath filePath)
+        public IActionResult Download([FromQuery] TargetPath targetPath)
         {
             var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
-            var path = filePath.path;
+            var path = targetPath.path;
             if (path == null)
             {
-            return BadRequest("Path is required.");
+                return BadRequest("Path is required.");
             }
 
             if (!System.IO.File.Exists(path))
             {
-            return NotFound("File not found.");
+                return NotFound("File not found.");
             }
 
             var fileBytes = System.IO.File.ReadAllBytes(path);
@@ -61,6 +60,43 @@ namespace sweetbackend.Controllers
             var contentType = "application/octet-stream";
 
             return File(fileBytes, contentType, fileName);
+        }
+
+        [HttpDelete("delete")]
+        [Authorize]
+        public IActionResult Delete([FromQuery] TargetPath targetPath)
+        {
+            Console.WriteLine("Delete touched!");
+
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
+            var path = targetPath.path;
+            if (path == null)
+            {
+                return BadRequest("Path is required.");
+            }
+
+            if (!System.IO.File.Exists(path) && !Directory.Exists(path))
+            {
+                return NotFound("Target not found.");
+            }
+
+            try
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                }
+                else
+                {
+                    Directory.Delete(path, true);
+                }
+            }
+            catch (Exception e)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
+            }
+
+            return Ok();
         }
 
     }
