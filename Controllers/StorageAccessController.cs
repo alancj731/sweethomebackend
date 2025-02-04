@@ -62,6 +62,43 @@ namespace sweetbackend.Controllers
             return File(fileBytes, contentType, fileName);
         }
 
+        [HttpPost("upload")]
+        [Authorize]
+        public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromQuery] TargetPath targetPath)
+        {
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
+            var path = targetPath.path;
+            if (path == null)
+            {
+                return BadRequest("Path is required.");
+            }
+            
+
+            if (file == null)
+            {
+                return BadRequest("File is required.");
+            }
+
+            if (System.IO.File.Exists(path))
+            {
+                return BadRequest("File already exists.");
+            }
+
+            try
+            {
+                using (var fileStream = new FileStream(path, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+            }
+            catch (Exception e)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
+            }
+
+            return Ok();
+        }
+
         [HttpDelete("delete")]
         [Authorize]
         public IActionResult Delete([FromQuery] TargetPath targetPath)
