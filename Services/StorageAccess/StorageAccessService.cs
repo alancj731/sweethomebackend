@@ -25,6 +25,8 @@ public interface IStorageAccessService
 {
     Task<StorageFolder> GetStorage(string email, string path);
     Task<bool> CreateFolder(string email, string path);
+
+    Task<bool> Rename(string email, string type, string path, string newPath);
 }
 
 public class StorageAccessService(AppDbContext context) : IStorageAccessService
@@ -72,7 +74,57 @@ public class StorageAccessService(AppDbContext context) : IStorageAccessService
         return this.GetFolder(path, name);
     }
 
-    public  async Task<bool> CreateFolder(string email, string path)
+    public async Task<bool> Rename(string email, string type, string path, string newPath)
+    {
+
+        try
+        {
+            var rootPath = await this.GetRootFolderPath(email);
+
+            if (rootPath == null)
+            {
+                throw new InvalidOperationException("Root folder path not found.");
+            }
+
+            if (!path.StartsWith(rootPath) || !newPath.StartsWith(rootPath))
+            {
+                throw new InvalidOperationException("Invalid path.");
+            }
+
+
+            if (type == "folder")
+            {
+
+                if (Directory.Exists(newPath) || !Directory.Exists(path))
+                {
+                    throw new InvalidOperationException("Orignal folder does not exist or target folder already exists.");
+                }
+                else
+                {
+                    Directory.Move(path, newPath);
+                }
+            }
+            else
+            {   
+                if (File.Exists(newPath) || !File.Exists(path))
+                {
+                    throw new InvalidOperationException("Orignal file does not exist or target file already exists.");
+                }
+                else
+                {
+                    File.Move(path, newPath);
+                }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> CreateFolder(string email, string path)
     {
         if (Directory.Exists(path))
         {

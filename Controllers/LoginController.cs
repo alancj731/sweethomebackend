@@ -14,8 +14,6 @@ namespace sweetbackend.Controllers
         [HttpPost]
         public async Task<ActionResult> UserLogin([FromBody] Credential credential)
         {
-            Console.WriteLine(credential.Email);
-            Console.WriteLine(credential.Password);
 
             if (string.IsNullOrEmpty(credential.Password) || string.IsNullOrEmpty(credential.Email))
             {
@@ -37,12 +35,6 @@ namespace sweetbackend.Controllers
                 {
                     return Unauthorized("Invalid password.");
                 }
-
-                // if (!user.Verified)
-                // {    
-                //     Console.WriteLine("User not verified.");
-                //     return Unauthorized("User not verified.");
-                // }
 
                 if (!user.Approved)
                 {

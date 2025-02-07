@@ -44,7 +44,6 @@ namespace sweetbackend.Controllers
 
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(credential.Password);
                 var userStoragePath = Path.Join("./UserStorage/", credential.Email.Replace("@", "_").Replace(".", "_"));
-                Console.WriteLine(userStoragePath);
 
                 if (!Directory.Exists(userStoragePath))
                 {

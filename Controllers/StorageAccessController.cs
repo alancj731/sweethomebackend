@@ -13,7 +13,10 @@ namespace sweetbackend.Controllers
 
     public class TargetPath
     {
+        
+        public string? type { get; set; }
         public string? path { get; set; }
+        public string? newpath { get; set; }
     }
 
 
@@ -60,6 +63,41 @@ namespace sweetbackend.Controllers
             var contentType = "application/octet-stream";
 
             return File(fileBytes, contentType, fileName);
+        }
+
+        [HttpPut("rename")]
+        [Authorize]
+        public async Task<IActionResult> RemameTarget([FromQuery] TargetPath targetPath)
+        {   
+            var email = User.Claims.Select(c => new { c.Type, c.Value }).ToList()[0].Value;
+            Console.WriteLine("targetPath", targetPath);
+
+            var type = targetPath.type;
+            var path = targetPath.path;
+            var newPath = targetPath.newpath;
+
+
+            if (type == null || (type !="file" && type != "folder") || path == null || newPath == null)
+            {
+                return BadRequest("Type, path and new path are required. Type must be 'file' or 'folder'.");
+            }
+
+             try
+            {
+                var result = await this._storageAccessService.Rename(email, type, path, newPath);
+
+
+                if (!result)
+                {
+                    return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to rename target.");
+                }
+
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
+            }
         }
 
         [HttpPost("createfolder")]
